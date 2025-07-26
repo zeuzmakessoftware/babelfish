@@ -5,49 +5,234 @@ export interface Translation {
 }
 
 export const techTranslations: Translation[] = [
-  // Development
-  { jargon: "refactor", explanation: "Clean up messy code without changing what it does", category: "development" },
-  { jargon: "technical debt", explanation: "Shortcuts we took that will bite us later", category: "development" },
-  { jargon: "MVP", explanation: "The crappiest version that still works", category: "development" },
-  { jargon: "scalable", explanation: "Won't explode when lots of people use it", category: "development" },
-  { jargon: "robust", explanation: "Doesn't break when weird stuff happens", category: "development" },
-  { jargon: "optimize", explanation: "Make it faster and less wasteful", category: "development" },
-  { jargon: "legacy code", explanation: "Old code nobody wants to touch", category: "development" },
-  { jargon: "code review", explanation: "Letting others judge your work", category: "development" },
-  { jargon: "hotfix", explanation: "Emergency band-aid for broken stuff", category: "development" },
-  { jargon: "rollback", explanation: "Undo everything and pretend it never happened", category: "development" },
+  // Development & Engineering
+  { 
+    jargon: "refactor", 
+    explanation: "Fancy way of saying 'I'm gonna clean up this messy code so it doesn't look like a spaghetti monster wrote it'", 
+    category: "Software Engineering" 
+  },
+  { 
+    jargon: "technical debt", 
+    explanation: "The tech equivalent of 'I'll clean my room tomorrow' - except tomorrow never comes and now you're buried in code chaos", 
+    category: "Software Engineering" 
+  },
+  { 
+    jargon: "MVP", 
+    explanation: "The 'good enough' version of your app that you release to see if anyone actually wants it. Like testing if people will eat your cooking before you open a restaurant", 
+    category: "Product Strategy" 
+  },
+  { 
+    jargon: "scalable", 
+    explanation: "System architecture capable of handling increased workloads through horizontal or vertical scaling without performance degradation", 
+    category: "Architecture" 
+  },
+  { 
+    jargon: "robust", 
+    explanation: "System resilience characterized by fault tolerance, graceful failure handling, and consistent performance under adverse conditions", 
+    category: "Architecture" 
+  },
+  { 
+    jargon: "optimize", 
+    explanation: "Performance enhancement through algorithmic improvements, resource utilization efficiency, and bottleneck elimination", 
+    category: "Performance" 
+  },
+  { 
+    jargon: "legacy code", 
+    explanation: "Production code utilizing outdated technologies or patterns, requiring modernization to align with current architectural standards", 
+    category: "Software Engineering" 
+  },
+  { 
+    jargon: "code review", 
+    explanation: "Quality assurance process involving peer evaluation of code changes to ensure standards compliance and knowledge sharing", 
+    category: "Software Engineering" 
+  },
+  { 
+    jargon: "hotfix", 
+    explanation: "Expedited patch deployment addressing critical production issues outside normal release cycles", 
+    category: "Operations" 
+  },
+  { 
+    jargon: "rollback", 
+    explanation: "Reverting system state to previous stable version using automated deployment pipelines to minimize service disruption", 
+    category: "Operations" 
+  },
   
-  // Architecture
-  { jargon: "microservices", explanation: "Splitting one big app into tiny apps that talk to each other", category: "architecture" },
-  { jargon: "monolith", explanation: "One giant app that does everything", category: "architecture" },
-  { jargon: "load balancer", explanation: "Traffic cop for your servers", category: "architecture" },
-  { jargon: "API", explanation: "A way for apps to talk to each other", category: "architecture" },
-  { jargon: "containerization", explanation: "Putting apps in boxes so they work everywhere", category: "architecture" },
-  { jargon: "orchestration", explanation: "Managing all those boxes automatically", category: "architecture" },
+  // Cloud & Infrastructure
+  { 
+    jargon: "microservices", 
+    explanation: "Breaking your big app into tiny apps so when one crashes, the others don't care. Like having multiple backup plans for your backup plans", 
+    category: "Architecture" 
+  },
+  { 
+    jargon: "monolith", 
+    explanation: "Single-unit application architecture where all components are interconnected and interdependent, deployed as one entity", 
+    category: "Architecture" 
+  },
+  { 
+    jargon: "load balancer", 
+    explanation: "Network component distributing incoming requests across multiple servers to optimize resource utilization and prevent overload", 
+    category: "Infrastructure" 
+  },
+  { 
+    jargon: "API", 
+    explanation: "The digital handshake that lets different apps talk to each other. Like a translator for computers that don't speak the same language", 
+    category: "Integration" 
+  },
+  { 
+    jargon: "containerization", 
+    explanation: "Application packaging technology ensuring consistent execution environments across development, testing, and production infrastructures", 
+    category: "DevOps" 
+  },
+  { 
+    jargon: "orchestration", 
+    explanation: "Automated management of containerized applications including deployment, scaling, networking, and service discovery", 
+    category: "DevOps" 
+  },
+  { 
+    jargon: "serverless", 
+    explanation: "Running code without managing servers - like having a magical butler who only charges you when you actually use the bathroom", 
+    category: "Cloud Computing" 
+  },
+  { 
+    jargon: "edge computing", 
+    explanation: "Distributed computing paradigm processing data closer to end users, reducing latency and bandwidth consumption", 
+    category: "Infrastructure" 
+  },
+  { 
+    jargon: "cloud computing", 
+    explanation: "On-demand delivery of computing resources over the internet, enabling elastic scaling and operational cost optimization", 
+    category: "Infrastructure" 
+  },
   
-  // Business
-  { jargon: "synergy", explanation: "When 1+1 somehow equals 3", category: "business" },
-  { jargon: "leverage", explanation: "Use this thing to make that thing better", category: "business" },
-  { jargon: "pivot", explanation: "We're changing direction because this isn't working", category: "business" },
-  { jargon: "bandwidth", explanation: "How much stuff someone can handle right now", category: "business" },
-  { jargon: "stakeholder", explanation: "People who care if this succeeds or fails", category: "business" },
-  { jargon: "deliverable", explanation: "Stuff we promised to finish", category: "business" },
-  { jargon: "scope creep", explanation: "When the project keeps getting bigger", category: "business" },
-  { jargon: "KPI", explanation: "Numbers that tell us if we're winning or losing", category: "business" },
+  // Business & Strategy
+  { 
+    jargon: "synergy", 
+    explanation: "Combined organizational capabilities producing outcomes greater than individual component contributions through strategic collaboration", 
+    category: "Business Strategy" 
+  },
+  { 
+    jargon: "leverage", 
+    explanation: "Strategic utilization of existing assets or capabilities to maximize value creation and competitive advantage", 
+    category: "Business Strategy" 
+  },
+  { 
+    jargon: "pivot", 
+    explanation: "Strategic business model adjustment based on market feedback to optimize product-market fit and revenue potential", 
+    category: "Business Strategy" 
+  },
+  { 
+    jargon: "bandwidth", 
+    explanation: "Available organizational capacity for executing initiatives, measured in time, resources, and operational capability", 
+    category: "Resource Management" 
+  },
+  { 
+    jargon: "stakeholder", 
+    explanation: "Individual or group with vested interest in project outcomes, requiring strategic communication and expectation management", 
+    category: "Project Management" 
+  },
+  { 
+    jargon: "deliverable", 
+    explanation: "Tangible project output meeting specified requirements and quality standards within defined timeline constraints", 
+    category: "Project Management" 
+  },
+  { 
+    jargon: "scope creep", 
+    explanation: "Uncontrolled expansion of project requirements beyond original specifications, impacting timeline and resource allocation", 
+    category: "Project Management" 
+  },
+  { 
+    jargon: "KPI", 
+    explanation: "Key Performance Indicator - quantifiable metric measuring organizational progress toward strategic objectives", 
+    category: "Analytics" 
+  },
   
-  // Modern Tech
-  { jargon: "machine learning", explanation: "Teaching computers to guess really well", category: "ai" },
-  { jargon: "artificial intelligence", explanation: "Making computers pretend to be smart", category: "ai" },
-  { jargon: "blockchain", explanation: "A fancy spreadsheet nobody can cheat on", category: "crypto" },
-  { jargon: "cloud computing", explanation: "Using someone else's computer", category: "infrastructure" },
-  { jargon: "serverless", explanation: "There are still servers, you just don't see them", category: "infrastructure" },
-  { jargon: "edge computing", explanation: "Doing the thinking closer to where you are", category: "infrastructure" },
+  // AI & Machine Learning
+  { 
+    jargon: "machine learning", 
+    explanation: "Algorithmic approach enabling systems to improve performance through pattern recognition and statistical inference from data", 
+    category: "Artificial Intelligence" 
+  },
+  { 
+    jargon: "artificial intelligence", 
+    explanation: "Computer systems performing tasks typically requiring human intelligence, including reasoning, learning, and decision-making", 
+    category: "Artificial Intelligence" 
+  },
+  { 
+    jargon: "deep learning", 
+    explanation: "Neural network architecture with multiple layers enabling complex pattern recognition and predictive modeling", 
+    category: "Artificial Intelligence" 
+  },
+  { 
+    jargon: "natural language processing", 
+    explanation: "AI capability enabling computers to understand, interpret, and generate human language for automated communication", 
+    category: "Artificial Intelligence" 
+  },
   
-  // Security
-  { jargon: "zero trust", explanation: "Trust nobody, verify everything", category: "security" },
-  { jargon: "penetration testing", explanation: "Hiring hackers to break your stuff first", category: "security" },
-  { jargon: "vulnerability", explanation: "A way bad guys could break in", category: "security" },
-  { jargon: "encryption", explanation: "Scrambling data so only the right people can read it", category: "security" },
+  // Security & Compliance
+  { 
+    jargon: "zero trust", 
+    explanation: "Security framework requiring identity verification for every access request, regardless of location or previous authentication", 
+    category: "Cybersecurity" 
+  },
+  { 
+    jargon: "penetration testing", 
+    explanation: "Authorized security assessment simulating cyber attacks to identify vulnerabilities and evaluate defense effectiveness", 
+    category: "Cybersecurity" 
+  },
+  { 
+    jargon: "vulnerability", 
+    explanation: "Security weakness in systems or processes that could be exploited to compromise confidentiality, integrity, or availability", 
+    category: "Cybersecurity" 
+  },
+  { 
+    jargon: "encryption", 
+    explanation: "Cryptographic protection of data through algorithmic transformation, ensuring confidentiality during storage and transmission", 
+    category: "Cybersecurity" 
+  },
+  
+  // Data & Analytics
+  { 
+    jargon: "big data", 
+    explanation: "Large, complex datasets requiring specialized technologies for storage, processing, and analysis to extract business insights", 
+    category: "Data Science" 
+  },
+  { 
+    jargon: "data warehouse", 
+    explanation: "Centralized repository storing integrated data from multiple sources, optimized for analytical queries and business intelligence", 
+    category: "Data Architecture" 
+  },
+  { 
+    jargon: "ETL", 
+    explanation: "Extract, Transform, Load - data integration process combining information from multiple sources into unified analytical format", 
+    category: "Data Engineering" 
+  },
+  { 
+    jargon: "blockchain", 
+    explanation: "Distributed ledger technology providing immutable, transparent record-keeping through cryptographic hashing and consensus mechanisms", 
+    category: "Emerging Technology" 
+  },
+  
+  // DevOps & Operations
+  { 
+    jargon: "DevOps", 
+    explanation: "Making developers and IT ops play nice together so they stop blaming each other when things break. It's like couples therapy for code", 
+    category: "Software Delivery" 
+  },
+  { 
+    jargon: "CI/CD", 
+    explanation: "Continuous Integration/Continuous Deployment - automated pipeline ensuring code quality and rapid, reliable software releases", 
+    category: "Software Delivery" 
+  },
+  { 
+    jargon: "infrastructure as code", 
+    explanation: "Managing computing infrastructure through machine-readable definition files rather than manual hardware configuration", 
+    category: "DevOps" 
+  },
+  { 
+    jargon: "observability", 
+    explanation: "System monitoring capability providing insights into internal states through metrics, logs, and distributed tracing", 
+    category: "Operations" 
+  }
 ];
 
 export function findTranslation(input: string): Translation | null {
@@ -60,7 +245,7 @@ export function findTranslation(input: string): Translation | null {
   
   if (directMatch) return directMatch;
   
-  // Fuzzy match
+  // Fuzzy match - check for partial matches
   const fuzzyMatch = techTranslations.find(t => 
     cleanInput.includes(t.jargon.toLowerCase()) || 
     t.jargon.toLowerCase().includes(cleanInput)
@@ -75,11 +260,11 @@ export function getRandomTranslation(): Translation {
 
 export function generateFallbackResponse(input: string): string {
   const responses = [
-    `Hmm, "${input}" sounds very technical! Let me swim around and think about that one.`,
-    `That's some advanced jargon! Even us tech fish need time to decode "${input}".`,
-    `Blub blub! "${input}" isn't in my fishionary yet, but it sounds important!`,
-    `Swimming through my knowledge base... "${input}" seems like something humans say to sound smart.`,
-    `As a wise goldfish once said: "${input}" probably means "it's complicated" in human speak.`
+    `"${input}" - Ah, the classic "I have no idea what this means but it sounds important" term. Our AI is scratching its digital head trying to figure this one out. 🤔`,
+    `"${input}" - *cricket sounds* Even our AI is like "bro, you're gonna need to be more specific." Maybe try speaking in human? 😅`,
+    `"${input}" - Our AI just blinked twice and said "error 404: translation not found." This is peak tech jargon right here. 🚀`,
+    `"${input}" - *AI processing noises* "Loading... loading... still loading... okay, this is definitely a thing that exists somewhere." 🤖`,
+    `"${input}" - Our AI's response: "I'm not saying it's aliens, but... it's probably aliens." 👽` 
   ];
   
   return responses[Math.floor(Math.random() * responses.length)];

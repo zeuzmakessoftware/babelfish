@@ -36,6 +36,9 @@ export function useVoiceInterface() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const speechSynthesis = window.speechSynthesis;
 
+    console.log('SpeechRecognition available:', !!SpeechRecognition);
+    console.log('SpeechSynthesis available:', !!speechSynthesis);
+
     if (SpeechRecognition && speechSynthesis) {
       setState(prev => ({ ...prev, isSupported: true }));
       
@@ -54,6 +57,7 @@ export function useVoiceInterface() {
           .map((result: any) => result[0].transcript)
           .join('');
         
+        console.log('Speech recognition result:', transcript);
         setState(prev => ({ ...prev, transcript }));
       };
 
@@ -90,6 +94,7 @@ export function useVoiceInterface() {
   }, []);
 
   const startListening = useCallback(() => {
+    console.log('Starting speech recognition...');
     if (recognitionRef.current && !state.isListening) {
       setState(prev => ({ ...prev, transcript: '' }));
       recognitionRef.current.start();
@@ -97,6 +102,7 @@ export function useVoiceInterface() {
   }, [state.isListening]);
 
   const stopListening = useCallback(() => {
+    console.log('Stopping speech recognition...');
     if (recognitionRef.current && state.isListening) {
       recognitionRef.current.stop();
     }
