@@ -10,7 +10,7 @@
 !.yarn/releases
 !.yarn/versions
 
-/venv/
+*/venv/*
 __pycache__
 
 # testing
