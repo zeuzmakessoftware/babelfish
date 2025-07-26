@@ -39,6 +39,7 @@ export default function BabelfishInterface() {
     confidence?: number;
     category?: string;
   }>>([]);
+  const [audioReady, setAudioReady] = useState<boolean>(false);
 
   // Process speech when listening stops
   useEffect(() => {
@@ -82,6 +83,13 @@ export default function BabelfishInterface() {
       console.log('Speech recognition not supported');
     }
   }, [isSupported, speak]);
+
+  // Handle audio permission
+  useEffect(() => {
+    if (voiceError && voiceError.includes('click the page to enable audio')) {
+      setAudioReady(true);
+    }
+  }, [voiceError]);
 
   const processUserInput = async (input: string) => {
     try {
@@ -524,9 +532,9 @@ export default function BabelfishInterface() {
             <span style={{ fontSize: '10px', color: '#22c55e', fontWeight: '600' }}>LISTENING</span>
           </div>
         )}
-        {backendError && (
-          <div style={{ ...listeningIndicatorStyle, background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.5)' }}>
-            <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: '600' }}>ERROR</span>
+        {audioReady && (
+          <div style={{ ...listeningIndicatorStyle, background: 'rgba(59, 130, 246, 0.2)', border: '1px solid rgba(59, 130, 246, 0.5)' }}>
+            <span style={{ fontSize: '10px', color: '#3b82f6', fontWeight: '600' }}>CLICK TO ENABLE AUDIO</span>
           </div>
         )}
       </div>

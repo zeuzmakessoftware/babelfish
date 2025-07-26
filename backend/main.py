@@ -1,6 +1,6 @@
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 import asyncio
@@ -64,6 +64,10 @@ async def lifespan(app: FastAPI):
     await services['mongodb'].close()
     if services.get('clickhouse'):
         await services['clickhouse'].close()
+    if services.get('stt'):
+        await services['stt'].close()
+    if services.get('rime'):
+        await services['rime'].close()
 
 app = FastAPI(
     title="Babelfish Enterprise AI Backend",
@@ -185,6 +189,13 @@ async def synthesize_speech(request: Dict[str, Any]):
     Generate high-quality speech using Rime voice AI
     """
     try:
+        # Check if voice service is properly configured
+        if not services.get('rime') or not services['rime'].api_key or services['rime'].api_key == "your_rime_api_key_here":
+            raise HTTPException(
+                status_code=503, 
+                detail="Voice synthesis not configured. Please set RIME_API_KEY in your .env file."
+            )
+        
         text = request.get('text')
         voice_style = request.get('voice_style', 'professional_female')
         speed = request.get('speed', 1.0)
@@ -193,22 +204,241 @@ async def synthesize_speech(request: Dict[str, Any]):
             raise HTTPException(status_code=400, detail="Text is required")
         
         # Generate speech using Rime
-        audio_stream = await services['rime'].synthesize_speech(
+        audio_stream = services['rime'].synthesize_speech(
             text=text,
             voice_style=voice_style,
             speed=speed,
             output_format='mp3'
         )
         
-        return StreamingResponse(
-            audio_stream,
-            media_type="audio/mpeg",
-            headers={"Content-Disposition": "attachment; filename=speech.mp3"}
+        # Collect all audio data into a single response
+        audio_data = b""
+        async for chunk in audio_stream:
+            audio_data += chunk
+        
+        if not audio_data:
+            raise HTTPException(status_code=500, detail="No audio data generated")
+        
+        # Determine media type based on audio data
+        if audio_data.startswith(b'RIFF'):
+            media_type = "audio/wav"
+            filename = "speech.wav"
+        else:
+            media_type = "audio/mpeg"
+            filename = "speech.mp3"
+        
+        return Response(
+            content=audio_data,
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Content-Length": str(len(audio_data))
+            }
         )
         
     except Exception as e:
         logger.error(f"Speech synthesis error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Speech synthesis failed: {str(e)}")
+
+@app.post("/api/voice/transcribe")
+async def transcribe_audio(request: Dict[str, Any]):
+    """
+    Transcribe audio to text using AWS Transcribe
+    """
+    try:
+        audio_data = request.get('audio_data')
+        language_code = request.get('language_code', 'en-US')
+        media_format = request.get('media_format', 'mp3')
+        
+        if not audio_data:
+            raise HTTPException(status_code=400, detail="Audio data is required")
+        
+        # Convert base64 audio data to bytes
+        import base64
+        audio_bytes = base64.b64decode(audio_data)
+        
+        # Create async generator for audio stream
+        async def audio_stream():
+            yield audio_bytes
+        
+        # Transcribe audio
+        result = await services['stt'].transcribe_audio_stream(
+            audio_stream(),
+            language_code=language_code,
+            media_format=media_format
+        )
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Transcription error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
+
+@app.post("/api/voice/transcribe-file")
+async def transcribe_audio_file(file: UploadFile):
+    """
+    Transcribe uploaded audio file to text
+    """
+    try:
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="File is required")
+        
+        # Read file content
+        content = await file.read()
+        
+        # Create async generator for audio stream
+        async def audio_stream():
+            yield content
+        
+        # Transcribe audio
+        result = await services['stt'].transcribe_audio_stream(
+            audio_stream(),
+            language_code='en-US',
+            media_format=file.filename.split('.')[-1] if '.' in file.filename else 'mp3'
+        )
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"File transcription error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"File transcription failed: {str(e)}")
+
+@app.get("/api/voice/available-voices")
+async def get_available_voices():
+    """
+    Get list of available voices for synthesis
+    """
+    try:
+        voices = await services['rime'].get_available_voices()
+        return voices
+    except Exception as e:
+        logger.error(f"Voice list error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get voices: {str(e)}")
+
+@app.post("/api/voice/streaming-transcribe")
+async def start_streaming_transcription(request: Dict[str, Any]):
+    """
+    Start real-time streaming transcription
+    """
+    try:
+        language_code = request.get('language_code', 'en-US')
+        
+        # This would be implemented with WebSocket for real-time streaming
+        # For now, return a placeholder response
+        return {
+            "message": "Streaming transcription endpoint",
+            "session_id": str(uuid.uuid4()),
+            "language_code": language_code,
+            "status": "ready"
+        }
+        
+    except Exception as e:
+        logger.error(f"Streaming transcription error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Streaming transcription failed: {str(e)}")
+
+@app.post("/api/voice/test")
+async def test_voice_synthesis():
+    """
+    Simple test endpoint for voice synthesis
+    """
+    try:
+        # Check if voice service is properly configured
+        if not services.get('rime') or not services['rime'].api_key or services['rime'].api_key == "your_rime_api_key_here":
+            return {
+                "message": "Voice synthesis not configured",
+                "status": "disabled",
+                "reason": "Rime API key not configured. Please set RIME_API_KEY in your .env file."
+            }
+        
+        text = "Hello, this is a test of the voice synthesis system. If you can hear this, the audio is working correctly!"
+        
+        # Use the voice service
+        audio_stream = services['rime'].synthesize_speech(
+            text=text,
+            voice_style='professional_female',
+            speed=1.0,
+            output_format='mp3'
+        )
+        
+        # Collect all audio data
+        audio_data = b""
+        async for chunk in audio_stream:
+            audio_data += chunk
+        
+        if not audio_data:
+            raise HTTPException(status_code=500, detail="No audio data generated")
+        
+        # Determine media type based on audio data
+        if audio_data.startswith(b'RIFF'):
+            media_type = "audio/wav"
+            filename = "test.wav"
+        else:
+            media_type = "audio/mpeg"
+            filename = "test.mp3"
+        
+        return Response(
+            content=audio_data,
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Content-Length": str(len(audio_data))
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Test voice synthesis error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Test failed: {str(e)}")
+
+@app.get("/api/voice/transcription-jobs")
+async def list_transcription_jobs(max_results: int = 10):
+    """
+    List recent transcription jobs
+    """
+    try:
+        jobs = await services['stt'].list_transcription_jobs(max_results)
+        return jobs
+    except Exception as e:
+        logger.error(f"List transcription jobs error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to list jobs: {str(e)}")
+
+@app.get("/api/voice/transcription-job/{job_name}")
+async def get_transcription_job_status(job_name: str):
+    """
+    Get status of a specific transcription job
+    """
+    try:
+        status = await services['stt'].get_transcription_job_status(job_name)
+        return status
+    except Exception as e:
+        logger.error(f"Get job status error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get job status: {str(e)}")
+
+@app.delete("/api/voice/transcription-job/{job_name}")
+async def delete_transcription_job(job_name: str):
+    """
+    Delete a transcription job
+    """
+    try:
+        result = await services['stt'].delete_transcription_job(job_name)
+        return result
+    except Exception as e:
+        logger.error(f"Delete job error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete job: {str(e)}")
+
+@app.get("/api/voice/transcription-sessions")
+async def get_active_transcription_sessions():
+    """
+    Get active transcription sessions
+    """
+    try:
+        sessions = services['websocket'].get_active_transcription_sessions()
+        return {
+            "active_sessions": sessions,
+            "total_active": len(sessions)
+        }
+    except Exception as e:
+        logger.error(f"Get transcription sessions error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get sessions: {str(e)}")
 
 @app.get("/api/analytics/session/{session_id}")
 async def get_session_analytics(session_id: str):
@@ -288,6 +518,16 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 asyncio.create_task(
                     process_voice_input(websocket, session_id, message['data'])
                 )
+            elif message['type'] == 'start_transcription':
+                # Start real-time transcription
+                asyncio.create_task(
+                    process_streaming_transcription(websocket, session_id, message['data'])
+                )
+            elif message['type'] == 'audio_chunk':
+                # Process audio chunk for real-time transcription
+                asyncio.create_task(
+                    process_audio_chunk(websocket, session_id, message['data'])
+                )
             
     except WebSocketDisconnect:
         await services['websocket'].disconnect(websocket, session_id)
@@ -330,7 +570,44 @@ async def process_realtime_translation(websocket: WebSocket, session_id: str, da
 async def process_voice_input(websocket: WebSocket, session_id: str, data: Dict):
     """Process voice input and return synthesized response"""
     try:
-        # Process the translation first
+        # Send processing status
+        await websocket.send_text(json.dumps({
+            'type': 'status',
+            'status': 'processing_voice',
+            'message': 'Processing voice input...'
+        }))
+        
+        # Transcribe audio if provided
+        if data.get('audio_data'):
+            import base64
+            audio_bytes = base64.b64decode(data['audio_data'])
+            
+            async def audio_stream():
+                yield audio_bytes
+            
+            transcription = await services['stt'].transcribe_audio_stream(
+                audio_stream(),
+                language_code=data.get('language_code', 'en-US')
+            )
+            
+            if transcription.get('error'):
+                await websocket.send_text(json.dumps({
+                    'type': 'error',
+                    'message': f'Transcription failed: {transcription["error"]}'
+                }))
+                return
+            
+            # Use transcribed text for translation
+            data['text'] = transcription['text']
+            
+            # Send transcription result
+            await websocket.send_text(json.dumps({
+                'type': 'transcription_complete',
+                'text': transcription['text'],
+                'confidence': transcription['confidence']
+            }))
+        
+        # Process the translation
         await process_realtime_translation(websocket, session_id, data)
         
         # Generate voice response if requested
@@ -341,13 +618,81 @@ async def process_voice_input(websocket: WebSocket, session_id: str, data: Dict)
                 'message': 'Generating voice response...'
             }))
             
-            # This would be handled by the /api/voice/synthesize endpoint
-            # in a real implementation
+            # Generate speech for the response
+            # This would be implemented with the actual response text
             
     except Exception as e:
         await websocket.send_text(json.dumps({
             'type': 'error',
             'message': f'Voice processing failed: {str(e)}'
+        }))
+
+async def process_streaming_transcription(websocket: WebSocket, session_id: str, data: Dict):
+    """Start real-time streaming transcription"""
+    try:
+        language_code = data.get('language_code', 'en-US')
+        
+        await websocket.send_text(json.dumps({
+            'type': 'transcription_started',
+            'session_id': session_id,
+            'language_code': language_code,
+            'message': 'Real-time transcription started'
+        }))
+        
+        # Store transcription session info
+        services['websocket'].transcription_sessions[session_id] = {
+            'websocket': websocket,
+            'language_code': language_code,
+            'buffer': b"",
+            'active': True
+        }
+        
+    except Exception as e:
+        await websocket.send_text(json.dumps({
+            'type': 'error',
+            'message': f'Failed to start transcription: {str(e)}'
+        }))
+
+async def process_audio_chunk(websocket: WebSocket, session_id: str, data: Dict):
+    """Process audio chunk for real-time transcription"""
+    try:
+        session_info = services['websocket'].transcription_sessions.get(session_id)
+        if not session_info or not session_info['active']:
+            return
+        
+        # Decode audio chunk
+        import base64
+        audio_chunk = base64.b64decode(data['audio_chunk'])
+        
+        # Add to buffer
+        session_info['buffer'] += audio_chunk
+        
+        # Process buffer if it's large enough
+        if len(session_info['buffer']) > 4096:  # 4KB chunks
+            async def audio_stream():
+                yield session_info['buffer']
+            
+            # Get partial transcription
+            result = await services['stt'].transcribe_audio_stream(
+                audio_stream(),
+                language_code=session_info['language_code']
+            )
+            
+            if result.get('text'):
+                await websocket.send_text(json.dumps({
+                    'type': 'partial_transcription',
+                    'text': result['text'],
+                    'confidence': result['confidence'],
+                    'is_final': False
+                }))
+            
+            # Clear buffer
+            session_info['buffer'] = b""
+        
+    except Exception as e:
+        await websocket.send_text(json.dumps({
+            'type': 'error',
+            'message': f'Audio chunk processing failed: {str(e)}'
         }))
 
 if __name__ == "__main__":

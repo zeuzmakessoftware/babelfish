@@ -24,6 +24,9 @@ class WebSocketManager:
             "processing": set()
         }
         
+        # Transcription sessions for real-time voice processing
+        self.transcription_sessions: Dict[str, Dict[str, Any]] = {}
+        
     async def connect(self, websocket: WebSocket, session_id: str):
         """Accept new WebSocket connection"""
         try:
@@ -294,4 +297,65 @@ class WebSocketManager:
         for session_id in failed_sessions:
             await self.disconnect(None, session_id)
         
-        return len(self.active_connections) - len(failed_sessions) 
+        return len(self.active_connections) - len(failed_sessions)
+    
+    def start_transcription_session(self, session_id: str, websocket: WebSocket, language_code: str = "en-US"):
+        """Start a new transcription session"""
+        try:
+            self.transcription_sessions[session_id] = {
+                "websocket": websocket,
+                "language_code": language_code,
+                "buffer": b"",
+                "active": True,
+                "started_at": datetime.utcnow(),
+                "total_audio_processed": 0
+            }
+            
+            logger.info(f"Transcription session started: {session_id}")
+            
+        except Exception as e:
+            logger.error(f"Error starting transcription session {session_id}: {str(e)}")
+    
+    def stop_transcription_session(self, session_id: str):
+        """Stop a transcription session"""
+        try:
+            if session_id in self.transcription_sessions:
+                session_info = self.transcription_sessions[session_id]
+                session_info["active"] = False
+                
+                # Log session statistics
+                duration = datetime.utcnow() - session_info["started_at"]
+                logger.info(f"Transcription session {session_id} stopped after {duration.total_seconds():.2f} seconds")
+                
+                del self.transcription_sessions[session_id]
+                
+        except Exception as e:
+            logger.error(f"Error stopping transcription session {session_id}: {str(e)}")
+    
+    def get_transcription_session(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Get transcription session info"""
+        return self.transcription_sessions.get(session_id)
+    
+    def get_active_transcription_sessions(self) -> Dict[str, Dict[str, Any]]:
+        """Get all active transcription sessions"""
+        return {
+            session_id: session_info 
+            for session_id, session_info in self.transcription_sessions.items()
+            if session_info.get("active", False)
+        }
+    
+    async def send_transcription_update(self, session_id: str, transcription_data: Dict[str, Any]):
+        """Send transcription update to specific session"""
+        try:
+            if session_id in self.active_connections:
+                message = {
+                    "type": "transcription_update",
+                    "session_id": session_id,
+                    "timestamp": datetime.utcnow().isoformat(),
+                    **transcription_data
+                }
+                
+                await self.send_personal_message(session_id, message)
+                
+        except Exception as e:
+            logger.error(f"Error sending transcription update to {session_id}: {str(e)}") 

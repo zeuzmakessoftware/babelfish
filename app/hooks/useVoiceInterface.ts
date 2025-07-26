@@ -108,58 +108,126 @@ export function useVoiceInterface() {
     }
   }, [state.isListening]);
 
-  const speak = useCallback((text: string, voice?: 'female' | 'male') => {
-    if (!synthRef.current) return;
+  const speak = useCallback(async (text: string, voice?: 'female' | 'male') => {
+    if (!text.trim()) return;
 
-    // Cancel any current speech
-    synthRef.current.cancel();
+    try {
+      setState(prev => ({ ...prev, isSpeaking: true }));
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // Try to find a suitable voice
-    const voices = synthRef.current.getVoices();
-    if (voices.length > 0) {
-      const preferredVoice = voices.find(v => 
-        voice === 'female' 
-          ? v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('samantha')
-          : v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('alex')
-      );
+      // Use backend Rime Voice AI for high-quality synthesis
+      const response = await fetch('/api/voice/synthesize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text,
+          voice_style: voice === 'female' ? 'professional_female' : 'professional_male',
+          speed: 1.0
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Voice synthesis failed: ${response.status}`);
+      }
+
+      // Convert response to audio blob
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
       
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
-      } else {
-        // Fallback to first available voice
-        utterance.voice = voices[0];
+      // Create and play audio
+      const audio = new Audio(audioUrl);
+      
+      audio.onloadstart = () => {
+        setState(prev => ({ ...prev, isSpeaking: true }));
+      };
+
+      audio.onended = () => {
+        setState(prev => ({ ...prev, isSpeaking: false }));
+        URL.revokeObjectURL(audioUrl); // Clean up
+      };
+
+      audio.onerror = (error) => {
+        console.error('Audio playback error:', error);
+        setState(prev => ({ ...prev, isSpeaking: false }));
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      // Try to play the audio with user interaction check
+      try {
+        await audio.play();
+      } catch (playError: any) {
+        if (playError.name === 'NotAllowedError') {
+          // Audio autoplay blocked - show user-friendly message
+          console.log('Audio autoplay blocked. Please click the page to enable audio.');
+          setState(prev => ({ 
+            ...prev, 
+            isSpeaking: false,
+            error: 'Please click the page to enable audio playback'
+          }));
+          
+          // Set up a one-time click listener to enable audio
+          const enableAudio = async () => {
+            try {
+              await audio.play();
+              document.removeEventListener('click', enableAudio);
+            } catch (e) {
+              console.error('Still cannot play audio:', e);
+            }
+          };
+          
+          document.addEventListener('click', enableAudio, { once: true });
+        } else {
+          throw playError;
+        }
+      }
+      
+    } catch (error) {
+      console.error('Voice synthesis error:', error);
+      setState(prev => ({ 
+        ...prev, 
+        isSpeaking: false, 
+        error: `Voice synthesis failed: ${error}` 
+      }));
+      
+      // Fallback to browser speech synthesis if backend fails
+      if (synthRef.current) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.9;
+        utterance.pitch = voice === 'female' ? 1.2 : 0.8;
+        utterance.volume = 0.8;
+        
+        utterance.onstart = () => {
+          setState(prev => ({ ...prev, isSpeaking: true }));
+        };
+
+        utterance.onend = () => {
+          setState(prev => ({ ...prev, isSpeaking: false }));
+        };
+
+        utterance.onerror = () => {
+          setState(prev => ({ ...prev, isSpeaking: false }));
+        };
+
+        synthRef.current.speak(utterance);
       }
     }
-
-    utterance.rate = 0.9;
-    utterance.pitch = voice === 'female' ? 1.2 : 0.8;
-    utterance.volume = 0.8;
-
-    utterance.onstart = () => {
-      setState(prev => ({ ...prev, isSpeaking: true }));
-    };
-
-    utterance.onend = () => {
-      setState(prev => ({ ...prev, isSpeaking: false }));
-      currentUtteranceRef.current = null;
-    };
-
-    utterance.onerror = () => {
-      setState(prev => ({ ...prev, isSpeaking: false }));
-      currentUtteranceRef.current = null;
-    };
-
-    currentUtteranceRef.current = utterance;
-    synthRef.current.speak(utterance);
   }, []);
 
   const stopSpeaking = useCallback(() => {
+    // Stop browser speech synthesis
     if (synthRef.current) {
       synthRef.current.cancel();
-      setState(prev => ({ ...prev, isSpeaking: false }));
     }
+    
+    // Stop any playing audio elements
+    const audioElements = document.querySelectorAll('audio');
+    audioElements.forEach(audio => {
+      audio.pause();
+      audio.currentTime = 0;
+    });
+    
+    setState(prev => ({ ...prev, isSpeaking: false }));
   }, []);
 
   return {
